@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
+import { useCookies } from "react-cookie";
+import { API_BASE_URL } from "../config";
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [, setCookie] = useCookies(["token"]);
   const [inputValue, setInputValue] = useState({
     email: "",
     password: "",
@@ -41,7 +44,7 @@ const Signup = () => {
 
     try {
       const { data } = await axios.post(
-     "https://ml-project-d6va.onrender.com/signup",
+        `${API_BASE_URL}/signup`,
         {
           email,
           username,
@@ -52,10 +55,21 @@ const Signup = () => {
         },
       );
 
-      const { success, message } = data;
+      const { success, message, token, user } = data;
 
       if (success) {
         handleSuccess(message);
+
+        if (token) {
+          localStorage.setItem("token", token);
+          setCookie("token", token, { path: "/", maxAge: 24 * 60 * 60 });
+        }
+        if (user) {
+          localStorage.setItem("user", JSON.stringify(user));
+          if (user.username) {
+            localStorage.setItem("username", user.username);
+          }
+        }
 
         // Clear form after successful signup
         setInputValue({
@@ -66,7 +80,7 @@ const Signup = () => {
 
         setTimeout(() => {
           navigate("/");
-        }, 1000);
+        }, 800);
       }
     } catch (error) {
       console.error(error);

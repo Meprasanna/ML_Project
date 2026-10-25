@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 console.log("SERVER STARTING...");
 const express = require("express");
 const mongoose = require("mongoose");
@@ -10,8 +12,6 @@ const predictionRoute = require("./Routes/PredictionRoute.js");
 const datasetRoute = require("./Routes/DatasetRoute.js");
 
 console.log("Routes loaded successfully.");
-
-require("dotenv").config();
 
 const app = express();
 
@@ -32,6 +32,13 @@ app.use(
 );
 
 // -------------------- ROUTES --------------------
+
+app.get("/", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "DemandForecast backend server is running.",
+  });
+});
 
 app.use("/", authRoute);
 app.use("/", predictionRoute);

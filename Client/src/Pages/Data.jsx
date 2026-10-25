@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
-const API_BASE = "https://ml-project-d6va.onrender.com";
+const API_BASE = API_BASE_URL;
 
 const requiredColumns = [
   "date",

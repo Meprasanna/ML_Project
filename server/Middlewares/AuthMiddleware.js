@@ -2,9 +2,22 @@ const User = require("../Models/UserModel.js");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
+const getToken = (req) => {
+  if (req.cookies && req.cookies.token) {
+    return req.cookies.token;
+  }
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith("Bearer ")
+  ) {
+    return req.headers.authorization.split(" ")[1];
+  }
+  return null;
+};
+
 module.exports.userVerification = async (req, res) => {
   try {
-    const token = req.cookies.token;
+    const token = getToken(req);
 
     if (!token) {
       return res.status(401).json({
@@ -42,7 +55,7 @@ module.exports.userVerification = async (req, res) => {
 
 module.exports.authenticateUser = async (req, res, next) => {
   try {
-    const token = req.cookies.token;
+    const token = getToken(req);
 
     if (!token) {
       return res.status(401).json({
