@@ -446,6 +446,34 @@ const formatDate = (value) => {
                     )}
                   </p>
                 </div>
+
+                {/* DETECTED PRODUCTS BADGES */}
+                {datasetSummary.products && datasetSummary.products.length > 0 && (
+                  <div className="col-span-2 lg:col-span-4 mt-3 pt-3 border-t border-slate-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                      <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                        Detected Dataset Products ({datasetSummary.products.length}):
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => navigate("/models")}
+                        className="text-xs font-bold text-emerald-400 hover:text-emerald-300 transition flex items-center gap-1.5"
+                      >
+                        <span>Train / Retrain Model on this Data →</span>
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {datasetSummary.products.map((p) => (
+                        <span
+                          key={p}
+                          className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                        >
+                          📦 {p}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-slate-500 text-sm">

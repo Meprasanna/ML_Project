@@ -18,6 +18,7 @@ const {
   getMLDataset,
   cleanupDuplicateDatasets,
   getDatasetSummary,
+  getAnalyticsSummary,
 } = require("../Controllers/DatasetController.js");
 
 const uploadDirectory = path.join(__dirname, "../uploads");
@@ -80,6 +81,11 @@ router.get(
   "/datasets/summary",
   authenticateUser,
   getDatasetSummary
+);
+router.get(
+  "/datasets/analytics",
+  authenticateUser,
+  getAnalyticsSummary
 );
 
 module.exports = router;
