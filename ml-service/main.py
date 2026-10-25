@@ -13,8 +13,17 @@ from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegresso
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="DemandForecast AI")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # =========================================================
 # CONFIGURATION
