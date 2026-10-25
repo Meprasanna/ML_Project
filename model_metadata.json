@@ -1,0 +1,81 @@
+{
+  "best_model": "HistGradientBoosting Regressor",
+  "metrics": {
+    "MAE": 25.22,
+    "RMSE": 33.23,
+    "R2": 0.9528,
+    "MAPE": 4.32,
+    "TrainingTimeSec": 1.19
+  },
+  "comparison": {
+    "Ridge (Linear Baseline)": {
+      "MAE": 28.19,
+      "RMSE": 37.46,
+      "R2": 0.9401,
+      "MAPE": 4.84,
+      "TrainingTimeSec": 0.09
+    },
+    "Random Forest Regressor": {
+      "MAE": 28.6,
+      "RMSE": 38.65,
+      "R2": 0.9362,
+      "MAPE": 4.86,
+      "TrainingTimeSec": 0.99
+    },
+    "HistGradientBoosting Regressor": {
+      "MAE": 25.22,
+      "RMSE": 33.23,
+      "R2": 0.9528,
+      "MAPE": 4.32,
+      "TrainingTimeSec": 1.19
+    }
+  },
+  "residual_std": 33.23425851015941,
+  "train_records": 5112,
+  "test_records": 1284,
+  "total_daily_records": 6396,
+  "split_date": "2025-06-01",
+  "feature_count": 28,
+  "top_features": [
+    {
+      "Feature": "rolling_mean_7",
+      "Importance": 0.45558398241744325
+    },
+    {
+      "Feature": "rolling_mean_30",
+      "Importance": 0.07336662851523539
+    },
+    {
+      "Feature": "lag_1",
+      "Importance": 0.06785631764665252
+    },
+    {
+      "Feature": "discountPercent",
+      "Importance": 0.023378393093267856
+    },
+    {
+      "Feature": "weather",
+      "Importance": 0.01928182204816096
+    },
+    {
+      "Feature": "day",
+      "Importance": 0.01836186928195107
+    },
+    {
+      "Feature": "temperature",
+      "Importance": 0.017289858050921914
+    },
+    {
+      "Feature": "festival",
+      "Importance": 0.01129376793011685
+    },
+    {
+      "Feature": "lag_28",
+      "Importance": 0.010342586577947977
+    },
+    {
+      "Feature": "day_of_week",
+      "Importance": 0.007950093809376613
+    }
+  ]
+}

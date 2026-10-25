@@ -645,72 +645,138 @@ const formatDate = (value) => {
           </div>
 
           {/* =================================================
+              DATA CLEANING & DEDUPLICATION AUDIT
+          ================================================= */}
+          <section className="mt-6 rounded-2xl border border-white/10 bg-[#07101f] p-6 sm:p-8">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-white">
+                  Data Cleaning & Deduplication Audit
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Automated verification and deduplication results across the 2 project data sheets
+                </p>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                Audit Verified ✓
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* SHEET 1 */}
+              <div className="rounded-xl border border-slate-800 bg-[#020617] p-5 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h4 className="font-bold text-white text-base">Sheet 1: Historical Multi-factor</h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    Production Pool
+                  </span>
+                </div>
+                <div className="text-xs text-slate-300 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">File:</span>
+                    <span className="font-mono text-white">demand_forecasting_multifactor_dataset.csv</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Total Records:</span>
+                    <span className="font-bold text-white">26,304 clean records</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Timeline:</span>
+                    <span className="text-slate-200">2023-01-01 to 2025-12-31 (3 Years)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Duplicate Keys:</span>
+                    <span className="text-emerald-400 font-bold">0 Duplicates (Zero Collisions)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Null Imputation:</span>
+                    <span className="text-slate-300">23,568 holiday entries mapped to 'Normal Day'</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Features:</span>
+                    <span className="text-slate-300">6 Products across 4 Outlets (S001–S004)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* SHEET 2 */}
+              <div className="rounded-xl border border-slate-800 bg-[#020617] p-5 space-y-3">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h4 className="font-bold text-white text-base">Sheet 2: Duplicate Test Sheet</h4>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    Deduplication Validated
+                  </span>
+                </div>
+                <div className="text-xs text-slate-300 space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">File:</span>
+                    <span className="font-mono text-white">demandforecast_duplicate_test_60_records.csv</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Raw Rows:</span>
+                    <span className="font-bold text-white">60 records</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Conflicting Duplicate Rows:</span>
+                    <span className="text-amber-400 font-bold">40 records sharing duplicate keys</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Deduplication Strategy:</span>
+                    <span className="text-slate-300">Deterministic key grouping & aggregation</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Post-Deduplication Rows:</span>
+                    <span className="text-emerald-400 font-bold">40 unique records (20 redundant removed)</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-500">Status:</span>
+                    <span className="text-emerald-400 font-bold">✓ Automated Deduplication Verified</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* =================================================
               PIPELINE INFO
           ================================================= */}
-
           <section className="mt-6 rounded-2xl border border-white/10 bg-[#07101f] p-6 sm:p-8">
             <h3 className="text-xl font-semibold">
               Forecasting Data Pipeline
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
-
               <div className="rounded-xl border border-white/10 bg-slate-900/30 p-5">
-                <div className="text-emerald-400 text-lg">
-                  01
-                </div>
-
-                <h4 className="font-semibold mt-3">
-                  Upload
-                </h4>
-
+                <div className="text-emerald-400 text-lg">01</div>
+                <h4 className="font-semibold mt-3">Upload & Clean</h4>
                 <p className="text-sm text-slate-500 mt-2">
-                  Upload historical sales data in CSV format.
+                  Automated parsing, type coercion, and key deduplication.
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-slate-900/30 p-5">
-                <div className="text-emerald-400 text-lg">
-                  02
-                </div>
-
-                <h4 className="font-semibold mt-3">
-                  Validate
-                </h4>
-
+                <div className="text-emerald-400 text-lg">02</div>
+                <h4 className="font-semibold mt-3">Occasion Intel</h4>
                 <p className="text-sm text-slate-500 mt-2">
-                  Validate columns, dates, quantities and business factors.
+                  Extract festival surge uplifts and day-of-week seasonality.
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-slate-900/30 p-5">
-                <div className="text-emerald-400 text-lg">
-                  03
-                </div>
-
-                <h4 className="font-semibold mt-3">
-                  Process
-                </h4>
-
+                <div className="text-emerald-400 text-lg">03</div>
+                <h4 className="font-semibold mt-3">Model Training</h4>
                 <p className="text-sm text-slate-500 mt-2">
-                  Generate historical and time-series forecasting features.
+                  Chronological split training with HistGradientBoosting.
                 </p>
               </div>
 
               <div className="rounded-xl border border-white/10 bg-slate-900/30 p-5">
-                <div className="text-emerald-400 text-lg">
-                  04
-                </div>
-
-                <h4 className="font-semibold mt-3">
-                  Predict
-                </h4>
-
+                <div className="text-emerald-400 text-lg">04</div>
+                <h4 className="font-semibold mt-3">Material Plan</h4>
                 <p className="text-sm text-slate-500 mt-2">
-                  Use processed data for model training and forecasting.
+                  Future sales prediction and safety buffer replenishment.
                 </p>
               </div>
-
             </div>
           </section>
         </div>

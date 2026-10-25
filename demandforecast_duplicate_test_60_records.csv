@@ -1,0 +1,61 @@
+date,product,category,storeId,quantitySold,unitPrice,discountPercent,promotionActive,stockAvailable,stockout,isHoliday,holidayName,festival,isWorkingDay,weather,temperature
+2026-01-01,Test Tomato,Vegetable,TEST01,15,40,0,False,35,False,True,Test Holiday,Test Festival,False,Clear,18
+2026-01-06,Test Potato,Vegetable,TEST02,30,30,10,True,55,False,False,,None,True,Cloudy,23
+2026-01-07,Test Tomato,Vegetable,TEST02,18,40,0,False,44,False,False,,Test Festival,True,Clear,18
+2026-01-06,Test Potato,Vegetable,TEST02,32,30,0,False,60,False,False,,None,True,Cloudy,23
+2026-01-04,Test Potato,Vegetable,TEST04,19,30,5,True,42,False,False,,None,True,Cloudy,19
+2026-01-05,Test Milk,Dairy,TEST04,24,55,0,False,51,False,False,,None,True,Sunny,20
+2026-01-04,Test Potato,Vegetable,TEST01,44,30,0,False,67,False,False,,None,True,Cloudy,27
+2026-01-09,Test Tomato,Vegetable,TEST03,41,40,0,False,72,False,False,,None,True,Clear,26
+2026-01-03,Test Tomato,Vegetable,TEST04,16,40,0,False,38,False,False,,Test Festival,True,Clear,18
+2026-01-08,Test Potato,Vegetable,TEST01,33,30,0,False,63,False,False,,None,True,Cloudy,23
+2026-01-07,Test Milk,Dairy,TEST02,35,55,10,True,64,False,False,,None,True,Sunny,24
+2026-01-01,Test Milk,Dairy,TEST03,47,55,0,False,70,False,True,Test Holiday,None,False,Sunny,28
+2026-01-02,Test Rice,Grocery,TEST04,38,90,5,True,59,False,False,,None,True,Rain,25
+2026-01-04,Test Rice,Grocery,TEST01,24,90,0,False,47,False,False,,None,True,Rain,21
+2026-01-03,Test Tomato,Vegetable,TEST04,18,40,10,True,43,False,False,,Test Festival,True,Clear,18
+2026-01-08,Test Potato,Vegetable,TEST01,31,30,10,True,58,False,False,,None,True,Cloudy,23
+2026-01-09,Test Tomato,Vegetable,TEST03,39,40,10,True,67,False,False,,None,True,Clear,26
+2026-01-07,Test Milk,Dairy,TEST02,33,55,0,False,59,False,False,,None,True,Sunny,24
+2026-01-01,Test Tomato,Vegetable,TEST01,17,40,10,True,40,False,True,Test Holiday,Test Festival,False,Clear,18
+2026-01-05,Test Tomato,Vegetable,TEST02,27,40,5,True,51,False,False,,None,True,Clear,22
+2026-01-04,Test Rice,Grocery,TEST01,26,90,10,True,52,False,False,,None,True,Rain,21
+2026-01-10,Test Rice,Grocery,TEST01,37,90,5,True,66,False,False,,None,True,Rain,25
+2026-01-05,Test Milk,Dairy,TEST01,47,55,5,True,71,False,False,,None,True,Sunny,28
+2026-01-09,Test Milk,Dairy,TEST01,36,55,10,True,67,False,False,,None,True,Sunny,24
+2026-01-06,Test Potato,Vegetable,TEST03,20,30,5,True,45,False,False,,None,True,Cloudy,19
+2026-01-07,Test Tomato,Vegetable,TEST01,30,40,0,False,59,False,False,,None,True,Clear,22
+2026-01-06,Test Rice,Grocery,TEST04,25,90,0,False,50,False,False,,None,True,Rain,21
+2026-01-08,Test Rice,Grocery,TEST03,26,90,0,False,53,False,False,,None,True,Rain,21
+2026-01-10,Test Potato,Vegetable,TEST03,42,30,0,False,71,False,False,,None,True,Cloudy,27
+2026-01-01,Test Milk,Dairy,TEST04,35,55,0,False,55,False,True,Test Holiday,None,False,Sunny,24
+2026-01-07,Test Milk,Dairy,TEST03,23,55,10,True,49,False,False,,None,True,Sunny,20
+2026-01-07,Test Tomato,Vegetable,TEST01,28,40,5,True,54,False,False,,None,True,Clear,22
+2026-01-05,Test Tomato,Vegetable,TEST03,17,40,0,False,41,False,False,,Test Festival,True,Clear,18
+2026-01-06,Test Rice,Grocery,TEST04,27,90,10,True,55,False,False,,None,True,Rain,21
+2026-01-02,Test Rice,Grocery,TEST03,48,90,10,True,69,False,False,,None,True,Rain,29
+2026-01-03,Test Tomato,Vegetable,TEST01,41,40,10,True,63,False,False,,None,True,Clear,26
+2026-01-04,Test Potato,Vegetable,TEST04,21,30,0,False,47,False,False,,None,True,Cloudy,19
+2026-01-02,Test Potato,Vegetable,TEST01,20,30,0,False,44,False,False,,None,True,Cloudy,19
+2026-01-08,Test Potato,Vegetable,TEST02,21,30,5,True,48,False,False,,None,True,Cloudy,19
+2026-01-10,Test Potato,Vegetable,TEST04,32,30,10,True,61,False,False,,None,True,Cloudy,23
+2026-01-05,Test Tomato,Vegetable,TEST02,29,40,0,False,56,False,False,,None,True,Clear,22
+2026-01-02,Test Potato,Vegetable,TEST01,18,30,5,True,39,False,False,,None,True,Cloudy,19
+2026-01-02,Test Potato,Vegetable,TEST02,43,30,0,False,64,False,False,,None,True,Cloudy,27
+2026-01-03,Test Milk,Dairy,TEST01,21,55,10,True,43,False,False,,None,True,Sunny,20
+2026-01-08,Test Rice,Grocery,TEST02,38,90,0,False,68,False,False,,None,True,Rain,25
+2026-01-10,Test Rice,Grocery,TEST02,27,90,0,False,56,False,False,,None,True,Rain,21
+2026-01-06,Test Rice,Grocery,TEST01,15,90,10,True,40,False,False,,None,True,Rain,29
+2026-01-04,Test Rice,Grocery,TEST02,49,90,10,True,72,False,False,,None,True,Rain,29
+2026-01-10,Test Potato,Vegetable,TEST03,44,30,10,True,76,False,False,,None,True,Cloudy,27
+2026-01-01,Test Milk,Dairy,TEST03,45,55,5,True,65,False,True,Test Holiday,None,False,Sunny,28
+2026-01-03,Test Milk,Dairy,TEST02,46,55,5,True,68,False,False,,None,True,Sunny,28
+2026-01-09,Test Milk,Dairy,TEST01,34,55,0,False,62,False,False,,None,True,Sunny,24
+2026-01-10,Test Rice,Grocery,TEST01,39,90,0,False,71,False,False,,None,True,Rain,25
+2026-01-01,Test Tomato,Vegetable,TEST02,40,40,10,True,60,False,True,Test Holiday,None,False,Clear,26
+2026-01-08,Test Rice,Grocery,TEST02,36,90,5,True,63,False,False,,None,True,Rain,25
+2026-01-03,Test Milk,Dairy,TEST01,23,55,0,False,48,False,False,,None,True,Sunny,20
+2026-01-05,Test Milk,Dairy,TEST04,22,55,10,True,46,False,False,,None,True,Sunny,20
+2026-01-09,Test Tomato,Vegetable,TEST04,29,40,5,True,57,False,False,,None,True,Clear,22
+2026-01-02,Test Rice,Grocery,TEST03,50,90,0,False,74,False,False,,None,True,Rain,29
+2026-01-09,Test Milk,Dairy,TEST02,24,55,10,True,52,False,False,,None,True,Sunny,20
