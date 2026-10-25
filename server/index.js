@@ -15,21 +15,62 @@ console.log("Routes loaded successfully.");
 
 const app = express();
 
-const { MONGO_URL } = process.env;
+const { MONGO_URL, CLIENT_URL } = process.env;
 const PORT = process.env.PORT || 4000;
+
+// -------------------- CORS CONFIGURATION --------------------
+
+const configuredOrigins = (CLIENT_URL || "")
+  .split(",")
+  .map((url) => url.trim().replace(/\/+$/, ""))
+  .filter(Boolean);
+
+const defaultOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+];
+
+const allowedOrigins = Array.from(
+  new Set([...configuredOrigins, ...defaultOrigins])
+);
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // Allow server-to-server, curl, Postman, mobile requests without origin
+    if (!origin) return callback(null, true);
+
+    const cleanOrigin = origin.replace(/\/+$/, "");
+    if (
+      allowedOrigins.includes(cleanOrigin) ||
+      allowedOrigins.includes("*") ||
+      process.env.NODE_ENV !== "production"
+    ) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`CORS error: Origin '${origin}' is not allowed.`));
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Origin",
+    "X-Requested-With",
+    "Content-Type",
+    "Accept",
+    "Authorization",
+    "x-ml-service-key",
+  ],
+  exposedHeaders: ["set-cookie"],
+  optionsSuccessStatus: 200,
+};
 
 // -------------------- MIDDLEWARE --------------------
 
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
-
-app.use(
-  cors({
-    origin: true,
-    methods: ["GET", "PUT", "POST", "DELETE"],
-    credentials: true,
-  })
-);
 
 // -------------------- ROUTES --------------------
 
@@ -57,6 +98,13 @@ app.use((req, res) => {
 
 app.use((err, req, res, next) => {
   console.error(err);
+
+  if (err && err.message && err.message.startsWith("CORS error")) {
+    return res.status(403).json({
+      success: false,
+      message: err.message,
+    });
+  }
 
   return res.status(500).json({
     success: false,
