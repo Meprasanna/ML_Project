@@ -1,17 +1,29 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCookies } from "react-cookie";
+import axios from "axios";
 import { ToastContainer } from "react-toastify";
 import { FORECAST_DATA } from "../data/forecastData";
+import { API_BASE_URL } from "../config";
 
 const Home = () => {
   const navigate = useNavigate();
-  const [cookies, removeCookie] = useCookies([]);
-  const [username, setUsername] = useState("Administrator");
+  const [cookies, , removeCookie] = useCookies(["token"]);
+  const [username, setUsername] = useState(() => {
+    return localStorage.getItem("username") || "Administrator";
+  });
   const { summary, festivalUplift, dayOfWeek, productFestivalMatrix } = FORECAST_DATA;
 
-  const logout = () => {
-    removeCookie("token");
+  const logout = async () => {
+    try {
+      await axios.post(`${API_BASE_URL}/logout`, {}, { withCredentials: true });
+    } catch (e) {
+      // ignore
+    }
+    removeCookie("token", { path: "/" });
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("username");
     navigate("/login");
   };
 

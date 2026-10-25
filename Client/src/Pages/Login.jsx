@@ -2,9 +2,12 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { ToastContainer, toast } from "react-toastify";
+import { useCookies } from "react-cookie";
+import { API_BASE_URL } from "../config";
 
 const Login = () => {
   const navigate = useNavigate();
+  const [, setCookie] = useCookies(["token"]);
   const [inputValue, setInputValue] = useState({
     email: "",
     password: "",
@@ -38,8 +41,8 @@ const Login = () => {
     }
 
     try {
-     const { data } = await axios.post(
-  "https://ml-project-d6va.onrender.com/login",
+      const { data } = await axios.post(
+        `${API_BASE_URL}/login`,
         {
           email,
           password,
@@ -49,10 +52,21 @@ const Login = () => {
         },
       );
 
-      const { success, message } = data;
+      const { success, message, token, user } = data;
 
       if (success) {
         handleSuccess(message);
+
+        if (token) {
+          localStorage.setItem("token", token);
+          setCookie("token", token, { path: "/", maxAge: 24 * 60 * 60 });
+        }
+        if (user) {
+          localStorage.setItem("user", JSON.stringify(user));
+          if (user.username) {
+            localStorage.setItem("username", user.username);
+          }
+        }
 
         // Clear form after successful login
         setInputValue({
@@ -62,7 +76,7 @@ const Login = () => {
 
         setTimeout(() => {
           navigate("/");
-        }, 1000);
+        }, 800);
       }
     } catch (error) {
       console.error(error);

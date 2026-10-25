@@ -2,13 +2,14 @@ const User = require("../Models/UserModel.js");
 const { createSecretToken } = require("../uti/SecretToken.js");
 const bcrypt = require("bcryptjs");
 
-const cookieOptions = {
-  httpOnly: true,
-  sameSite: "none",
-  secure: true,
-  maxAge: 24 * 60 * 60 * 1000,
-};
+const isProduction = process.env.NODE_ENV === "production";
 
+const getCookieOptions = () => ({
+  httpOnly: false,
+  sameSite: isProduction ? "none" : "lax",
+  secure: isProduction,
+  maxAge: 24 * 60 * 60 * 1000,
+});
 
 module.exports.Signup = async (req, res) => {
   try {
@@ -38,13 +39,14 @@ module.exports.Signup = async (req, res) => {
 
     const token = createSecretToken(user._id);
 
-    res.cookie("token", token, cookieOptions);
+    res.cookie("token", token, getCookieOptions());
 
     const { password: _, ...userData } = user._doc;
 
     return res.status(201).json({
       success: true,
       message: "User signed up successfully.",
+      token,
       user: userData,
     });
   } catch (error) {
@@ -86,14 +88,38 @@ module.exports.Login = async (req, res) => {
 
     const token = createSecretToken(user._id);
 
-    res.cookie("token", token, cookieOptions);
+    res.cookie("token", token, getCookieOptions());
 
     return res.status(200).json({
       success: true,
       message: "User logged in successfully.",
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        username: user.username,
+      },
     });
   } catch (error) {
     console.error("Login Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error.",
+    });
+  }
+};
+
+module.exports.Logout = async (req, res) => {
+  try {
+    res.clearCookie("token", getCookieOptions());
+
+    return res.status(200).json({
+      success: true,
+      message: "User logged out successfully.",
+    });
+  } catch (error) {
+    console.error("Logout Error:", error);
 
     return res.status(500).json({
       success: false,
