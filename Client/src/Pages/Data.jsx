@@ -296,32 +296,6 @@ const formatDate = (value) => {
             <span>◇</span>
             <span>Models</span>
           </button>
-
-          <button
-            onClick={() => navigate("/reports")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-white/5 hover:text-white transition"
-          >
-            <span>▧</span>
-            <span>Reports</span>
-          </button>
-
-          <div className="border-t border-white/10 my-4"></div>
-
-          <button
-            onClick={() => navigate("/profile")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-white/5 hover:text-white transition"
-          >
-            <span>♙</span>
-            <span>Profile</span>
-          </button>
-
-          <button
-            onClick={() => navigate("/settings")}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-white/5 hover:text-white transition"
-          >
-            <span>⚙</span>
-            <span>Settings</span>
-          </button>
         </nav>
       </aside>
 
@@ -383,13 +357,6 @@ const formatDate = (value) => {
                 className="px-4 py-2 rounded-lg bg-white/5 text-slate-300"
               >
                 Models
-              </button>
-
-              <button
-                onClick={() => navigate("/reports")}
-                className="px-4 py-2 rounded-lg bg-white/5 text-slate-300"
-              >
-                Reports
               </button>
             </div>
           </div>

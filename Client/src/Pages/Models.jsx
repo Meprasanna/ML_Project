@@ -27,14 +27,6 @@ const Models = () => {
             onClick={() => navigate("/")}
             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/70 hover:text-white transition"
           >
-            <span>⌂</span>
-            <span>Home</span>
-          </button>
-
-          <button
-            onClick={() => navigate("/")}
-            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/70 hover:text-white transition"
-          >
             <span>▦</span>
             <span>Dashboard</span>
           </button>

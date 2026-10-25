@@ -5,6 +5,7 @@ import axios from "axios";
 import { ToastContainer } from "react-toastify";
 import { FORECAST_DATA } from "../data/forecastData";
 import { API_BASE_URL } from "../config";
+import AnalyticsChartCard from "../components/AnalyticsChartCard";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -50,14 +51,6 @@ const Home = () => {
           <button
             onClick={() => navigate("/")}
             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl bg-emerald-500/15 text-emerald-400 border border-emerald-500/10 font-medium"
-          >
-            <span>⌂</span>
-            <span>Home</span>
-          </button>
-
-          <button
-            onClick={() => navigate("/")}
-            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/70 hover:text-white transition"
           >
             <span>▦</span>
             <span>Dashboard</span>
@@ -187,89 +180,31 @@ const Home = () => {
             </div>
           </div>
 
-          {/* OCCASION UPLIFT & DAY OF WEEK GRIDS */}
+          {/* OCCASION UPLIFT & DAY OF WEEK DYNAMIC CHARTS */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* OCCASION UPLIFT BARS */}
-            <div className="bg-[#07101f] border border-slate-800 rounded-3xl p-7 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold">Occasion & Festival Demand Surge</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Sales uplift % compared against normal days</p>
-                </div>
-                <span className="text-xs px-2.5 py-1 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
-                  Surge Index
-                </span>
-              </div>
+            <AnalyticsChartCard
+              title="Occasion & Festival Demand Surge"
+              subtitle="Average sales and uplift across festivals vs normal baseline days"
+              badgeText="Surge Index"
+              badgeColor="emerald"
+              data={festivalUplift}
+              nameKey="festival_clean"
+              valueKey="avgSales"
+              valueSuffix="units"
+              defaultChartType="bar"
+            />
 
-              <div className="space-y-3 pt-2">
-                {festivalUplift.map((fest) => {
-                  const uplift = fest.upliftVsNormalPct;
-                  const isPositive = uplift > 0;
-                  const isDip = uplift < 0;
-                  return (
-                    <div key={fest.festival_clean} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="font-semibold text-slate-200">{fest.festival_clean}</span>
-                        <span
-                          className={`font-mono font-bold ${
-                            isPositive ? "text-emerald-400" : isDip ? "text-rose-400" : "text-slate-400"
-                          }`}
-                        >
-                          {uplift > 0 ? `+${uplift.toFixed(1)}%` : `${uplift.toFixed(1)}%`} ({fest.avgSales.toFixed(1)} units)
-                        </span>
-                      </div>
-                      <div className="w-full bg-[#020617] h-2.5 rounded-full overflow-hidden border border-slate-800">
-                        <div
-                          className={`h-full rounded-full ${
-                            isPositive ? "bg-emerald-500" : isDip ? "bg-rose-500" : "bg-slate-600"
-                          }`}
-                          style={{
-                            width: `${Math.min(100, Math.max(10, (fest.avgSales / 200) * 100))}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* DAY OF WEEK PATTERNS */}
-            <div className="bg-[#07101f] border border-slate-800 rounded-3xl p-7 space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-semibold">Day-of-Week Seasonality</h3>
-                  <p className="text-xs text-slate-500 mt-0.5">Average daily sales across Monday through Sunday</p>
-                </div>
-                <span className="text-xs px-2.5 py-1 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
-                  Weekly Cycle
-                </span>
-              </div>
-
-              <div className="space-y-3 pt-2">
-                {dayOfWeek.map((day) => {
-                  const isWeekend = day.day_of_week === "Saturday" || day.day_of_week === "Sunday";
-                  return (
-                    <div key={day.day_of_week} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className={`font-semibold ${isWeekend ? "text-amber-400 font-bold" : "text-slate-300"}`}>
-                          {day.day_of_week} {isWeekend && "★ Weekend Surge"}
-                        </span>
-                        <span className="font-mono text-slate-300 font-semibold">{day.avgSales.toFixed(1)} units/day</span>
-                      </div>
-                      <div className="w-full bg-[#020617] h-2.5 rounded-full overflow-hidden border border-slate-800">
-                        <div
-                          className={`h-full rounded-full ${isWeekend ? "bg-amber-400" : "bg-blue-500"}`}
-                          style={{
-                            width: `${(day.avgSales / 170) * 100}%`,
-                          }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+            <AnalyticsChartCard
+              title="Day-of-Week Seasonality"
+              subtitle="Average daily sales patterns from Monday through Sunday"
+              badgeText="Weekly Cycle"
+              badgeColor="amber"
+              data={dayOfWeek}
+              nameKey="day_of_week"
+              valueKey="avgSales"
+              valueSuffix="units/day"
+              defaultChartType="area"
+            />
           </div>
 
           {/* PRODUCT X FESTIVAL MATRIX */}

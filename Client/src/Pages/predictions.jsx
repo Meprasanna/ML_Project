@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { FORECAST_DATA } from "../data/forecastData";
+import ForecastTrendChart from "../components/ForecastTrendChart";
 
 const PROD_BASELINES = {
   Milk: { base: 842, festMultiplier: 1.15, dowMultipliers: [0.98, 0.98, 0.99, 0.98, 1.0, 1.04, 1.08] },
@@ -100,14 +101,6 @@ const Predictions = () => {
         </div>
 
         <nav className="flex-1 px-4 py-6 space-y-2">
-          <button
-            onClick={() => navigate("/")}
-            className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/70 hover:text-white transition"
-          >
-            <span>⌂</span>
-            <span>Home</span>
-          </button>
-
           <button
             onClick={() => navigate("/")}
             className="w-full flex items-center gap-4 px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800/70 hover:text-white transition"
@@ -264,6 +257,9 @@ const Predictions = () => {
                   <p className="text-xs text-slate-500 mt-1">Inventory below expected demand</p>
                 </div>
               </div>
+
+              {/* DYNAMIC INTERACTIVE FORECAST CHART */}
+              <ForecastTrendChart data={filteredForecast} selectedProduct={product} />
 
               {/* DETAILED TABLE */}
               <div className="bg-[#07101f] border border-slate-800 rounded-3xl p-7">
