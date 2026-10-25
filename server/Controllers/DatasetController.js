@@ -520,3 +520,178 @@ module.exports.getDatasetSummary = async (req, res) => {
     });
   }
 };
+
+module.exports.getAnalyticsSummary = async (req, res) => {
+  try {
+    const companyId = req.user.userId;
+
+    const [count, products, stores, dateStats, festivalStats, dowStats, productStats] =
+      await Promise.all([
+        Dataset.countDocuments({ companyId }),
+        Dataset.distinct("product", { companyId }),
+        Dataset.distinct("storeId", { companyId }),
+        Dataset.aggregate([
+          { $match: { companyId } },
+          {
+            $group: {
+              _id: null,
+              start: { $min: "$date" },
+              end: { $max: "$date" },
+            },
+          },
+        ]),
+        Dataset.aggregate([
+          { $match: { companyId } },
+          {
+            $group: {
+              _id: {
+                $cond: [
+                  {
+                    $or: [
+                      { $eq: ["$festival", "None"] },
+                      { $eq: ["$festival", ""] },
+                      { $not: ["$festival"] },
+                    ],
+                  },
+                  "Normal Day",
+                  "$festival",
+                ],
+              },
+              recordCount: { $sum: 1 },
+              avgSales: { $avg: "$quantitySold" },
+              totalSales: { $sum: "$quantitySold" },
+              minSales: { $min: "$quantitySold" },
+              maxSales: { $max: "$quantitySold" },
+            },
+          },
+          { $sort: { avgSales: -1 } },
+        ]),
+        Dataset.aggregate([
+          { $match: { companyId } },
+          {
+            $group: {
+              _id: { $dayOfWeek: "$date" }, // 1=Sun, 2=Mon, 3=Tue, 4=Wed, 5=Thu, 6=Fri, 7=Sat
+              avgSales: { $avg: "$quantitySold" },
+              totalSales: { $sum: "$quantitySold" },
+              recordCount: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ]),
+        Dataset.aggregate([
+          { $match: { companyId } },
+          {
+            $group: {
+              _id: "$product",
+              totalSales: { $sum: "$quantitySold" },
+              avgSales: { $avg: "$quantitySold" },
+              recordCount: { $sum: 1 },
+            },
+          },
+          { $sort: { totalSales: -1 } },
+        ]),
+      ]);
+
+    const DOW_NAMES = [
+      "",
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
+
+    const dayOfWeek = dowStats.map((item) => ({
+      day_name: DOW_NAMES[item._id] || `Day ${item._id}`,
+      day_index: item._id,
+      avgSales: Number((item.avgSales || 0).toFixed(1)),
+      totalSales: item.totalSales,
+      recordCount: item.recordCount,
+    }));
+
+    // Find normal day avg for uplift calculation
+    const normalDay = festivalStats.find(
+      (f) =>
+        f._id.toLowerCase() === "normal day" ||
+        f._id.toLowerCase() === "none"
+    );
+    const normalAvg =
+      normalDay?.avgSales || festivalStats[0]?.avgSales || 1;
+
+    const festivalUplift = festivalStats.map((f) => ({
+      festival_clean: f._id,
+      recordCount: f.recordCount,
+      avgSales: Number((f.avgSales || 0).toFixed(1)),
+      totalSales: f.totalSales,
+      minSales: f.minSales,
+      maxSales: f.maxSales,
+      upliftVsNormalPct:
+        normalAvg > 0
+          ? Number(
+              (((f.avgSales - normalAvg) / normalAvg) * 100).toFixed(2)
+            )
+          : 0,
+    }));
+
+    const weekdayItems = dayOfWeek.filter(
+      (d) => d.day_name !== "Saturday" && d.day_name !== "Sunday"
+    );
+    const weekendItems = dayOfWeek.filter(
+      (d) => d.day_name === "Saturday" || d.day_name === "Sunday"
+    );
+
+    const weekdayAvg =
+      weekdayItems.length > 0
+        ? weekdayItems.reduce((acc, c) => acc + c.avgSales, 0) /
+          weekdayItems.length
+        : 0;
+
+    const weekendAvg =
+      weekendItems.length > 0
+        ? weekendItems.reduce((acc, c) => acc + c.avgSales, 0) /
+          weekendItems.length
+        : 0;
+
+    const weekendUpliftPct =
+      weekdayAvg > 0
+        ? ((weekendAvg - weekdayAvg) / weekdayAvg) * 100
+        : 0;
+
+    const productDistribution = productStats.map((p) => ({
+      name: p._id,
+      totalSales: p.totalSales,
+      avgSales: Number((p.avgSales || 0).toFixed(1)),
+      recordCount: p.recordCount,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      summary: {
+        historicalRecords: count,
+        productsCount: products.length,
+        storesCount: stores.length,
+        weekdayAvg: Number(weekdayAvg.toFixed(1)),
+        weekendAvg: Number(weekendAvg.toFixed(1)),
+        weekendUpliftPct: Number(weekendUpliftPct.toFixed(2)),
+      },
+      products: products.sort(),
+      stores: stores.sort(),
+      dateRange: {
+        start: dateStats[0]?.start || null,
+        end: dateStats[0]?.end || null,
+      },
+      festivalUplift,
+      dayOfWeek,
+      productDistribution,
+    });
+  } catch (error) {
+    console.error("Analytics Summary Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Unable to calculate dynamic analytics summary.",
+    });
+  }
+};

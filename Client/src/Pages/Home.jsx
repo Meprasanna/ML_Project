@@ -13,7 +13,51 @@ const Home = () => {
   const [username, setUsername] = useState(() => {
     return localStorage.getItem("username") || "Administrator";
   });
-  const { summary, festivalUplift, dayOfWeek, productFestivalMatrix } = FORECAST_DATA;
+
+  const {
+    summary: defaultSummary,
+    festivalUplift: defaultFestivalUplift,
+    dayOfWeek: defaultDayOfWeek,
+    productFestivalMatrix: defaultMatrix,
+  } = FORECAST_DATA;
+
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [modelStatus, setModelStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [analyticsRes, modelRes] = await Promise.allSettled([
+          axios.get(`${API_BASE_URL}/datasets/analytics`, { withCredentials: true }),
+          axios.get(`${API_BASE_URL}/models/status`, { withCredentials: true }),
+        ]);
+
+        if (isMounted) {
+          if (analyticsRes.status === "fulfilled" && analyticsRes.value.data?.success) {
+            setAnalyticsData(analyticsRes.value.data);
+          }
+          if (modelRes.status === "fulfilled" && modelRes.value.data?.success && modelRes.value.data?.trained) {
+            setModelStatus(modelRes.value.data.model);
+          }
+        }
+      } catch (err) {
+        console.warn("Could not load dynamic dashboard data:", err.message);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const logout = async () => {
     try {
@@ -27,6 +71,42 @@ const Home = () => {
     localStorage.removeItem("username");
     navigate("/login");
   };
+
+  const isDynamic = Boolean(analyticsData && analyticsData.summary?.historicalRecords > 0);
+
+  const historicalRecords = isDynamic
+    ? analyticsData.summary.historicalRecords
+    : defaultSummary.historicalRecords;
+
+  const activeModelName = modelStatus?.name || defaultSummary.bestModel;
+  const activeMAPE = modelStatus?.metrics?.mape ?? defaultSummary.bestMAPE;
+  const activeR2 = defaultSummary.bestR2;
+
+  const weekendUplift = isDynamic
+    ? analyticsData.summary.weekendUpliftPct
+    : defaultSummary.weekendUpliftPct;
+
+  const weekendAvg = isDynamic
+    ? analyticsData.summary.weekendAvg
+    : defaultSummary.weekendAvg;
+
+  const weekdayAvg = isDynamic
+    ? analyticsData.summary.weekdayAvg
+    : defaultSummary.weekdayAvg;
+
+  const festivalData = isDynamic && analyticsData.festivalUplift?.length > 0
+    ? analyticsData.festivalUplift
+    : defaultFestivalUplift;
+
+  const dayOfWeekData = isDynamic && analyticsData.dayOfWeek?.length > 0
+    ? analyticsData.dayOfWeek
+    : defaultDayOfWeek;
+
+  const productDistribution = analyticsData?.productDistribution || [];
+  const productsList = analyticsData?.products || [];
+
+  const topFestival = festivalData.find((f) => (f.upliftVsNormalPct || 0) > 0) || festivalData[0];
+  const peakSurgeVal = topFestival?.upliftVsNormalPct ? topFestival.upliftVsNormalPct.toFixed(1) : "18.3";
 
   return (
     <div className="min-h-screen bg-[#020617] text-white flex">
@@ -85,8 +165,8 @@ const Home = () => {
         <div className="p-4 border-t border-slate-800">
           <div className="rounded-2xl bg-[#0b1729] border border-slate-800 p-4">
             <p className="text-xs text-slate-400 uppercase font-semibold">Active Pipeline</p>
-            <p className="text-emerald-400 font-bold mt-1 text-sm">HistGradientBoosting</p>
-            <p className="text-xs text-slate-500 mt-1">MAPE: 4.32% • R²: 0.9528</p>
+            <p className="text-emerald-400 font-bold mt-1 text-sm">{activeModelName}</p>
+            <p className="text-xs text-slate-500 mt-1">MAPE: {activeMAPE}%</p>
           </div>
 
           <button
@@ -124,26 +204,36 @@ const Home = () => {
           <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-[#0b1729] to-[#07101f] p-8 lg:p-10">
             <div className="absolute right-0 top-0 w-96 h-96 bg-emerald-500/10 blur-3xl rounded-full"></div>
             <div className="relative z-10 max-w-3xl">
-              <p className="text-emerald-400 font-medium mb-2 text-xs uppercase tracking-wider">
-                PRODUCTION ML WORKSPACE
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-emerald-400 font-medium text-xs uppercase tracking-wider">
+                  PRODUCTION ML WORKSPACE
+                </p>
+                {isDynamic && (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    Live Dataset Connected ✓
+                  </span>
+                )}
+              </div>
               <h2 className="text-3xl lg:text-4xl font-bold leading-tight">
                 Occasion & Day-wise Demand Intelligence
               </h2>
               <p className="text-slate-400 mt-3 text-sm lg:text-base leading-6">
-                Trained on 26,304 clean multi-factor sales records. Real-time predictive forecasts,
-                festival surge factors, and automated safety stock material requirement planning.
+                Calculated on {historicalRecords.toLocaleString()} clean multi-factor sales records across{" "}
+                {productsList.length > 0 ? `${productsList.length} products` : "all categories"}.
+                Real-time predictive forecasts, occasion surge factors, and automated safety stock material replenishment.
               </p>
 
               <div className="flex flex-wrap gap-3 mt-6">
                 <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-slate-300">
-                  📅 3 Years History (2023–2025)
+                  📅 {analyticsData?.dateRange?.start && analyticsData?.dateRange?.end
+                    ? `${analyticsData.dateRange.start.slice(0, 10)} to ${analyticsData.dateRange.end.slice(0, 10)}`
+                    : "Multi-Year Historical Horizon"}
                 </span>
                 <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-emerald-400">
-                  ✓ Model Accuracy: 4.32% MAPE
+                  ✓ Model Accuracy: {activeMAPE}% MAPE
                 </span>
                 <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-amber-400">
-                  🎉 Peak Surge: +18.32% Lift
+                  🎉 Peak Surge: +{peakSurgeVal}% Lift
                 </span>
               </div>
             </div>
@@ -154,28 +244,28 @@ const Home = () => {
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">Clean Historical Records</p>
               <h3 className="text-3xl font-bold text-white mt-2">
-                {summary.historicalRecords.toLocaleString()}
+                {historicalRecords.toLocaleString()}
               </h3>
               <p className="text-xs text-emerald-400 mt-2 font-semibold">100% Validated & Deduplicated</p>
             </div>
 
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">Peak Festival Surge</p>
-              <h3 className="text-3xl font-bold text-emerald-400 mt-2">+18.32%</h3>
-              <p className="text-xs text-slate-400 mt-2">Harvest Festival & Holi</p>
+              <h3 className="text-3xl font-bold text-emerald-400 mt-2">+{peakSurgeVal}%</h3>
+              <p className="text-xs text-slate-400 mt-2">{topFestival?.festival_clean || "Occasion Spike"}</p>
             </div>
 
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">ML Model Accuracy (MAPE)</p>
-              <h3 className="text-3xl font-bold text-teal-300 mt-2">{summary.bestMAPE}%</h3>
-              <p className="text-xs text-slate-400 mt-2">HistGradientBoosting (R²: {summary.bestR2})</p>
+              <h3 className="text-3xl font-bold text-teal-300 mt-2">{activeMAPE}%</h3>
+              <p className="text-xs text-slate-400 mt-2">{activeModelName}</p>
             </div>
 
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">Weekend Demand Lift</p>
-              <h3 className="text-3xl font-bold text-amber-400 mt-2">+{summary.weekendUpliftPct}%</h3>
+              <h3 className="text-3xl font-bold text-amber-400 mt-2">+{weekendUplift}%</h3>
               <p className="text-xs text-slate-400 mt-2">
-                {summary.weekendAvg} vs {summary.weekdayAvg} Avg Units/Day
+                {weekendAvg} vs {weekdayAvg} Avg Units/Day
               </p>
             </div>
           </div>
@@ -187,7 +277,7 @@ const Home = () => {
               subtitle="Average sales and uplift across festivals vs normal baseline days"
               badgeText="Surge Index"
               badgeColor="emerald"
-              data={festivalUplift}
+              data={festivalData}
               nameKey="festival_clean"
               valueKey="avgSales"
               valueSuffix="units"
@@ -196,58 +286,112 @@ const Home = () => {
 
             <AnalyticsChartCard
               title="Day-of-Week Seasonality"
-              subtitle="Average daily sales patterns from Monday through Sunday"
+              subtitle="Average daily sales patterns across weekdays and weekends"
               badgeText="Weekly Cycle"
               badgeColor="amber"
-              data={dayOfWeek}
-              nameKey="day_of_week"
+              data={dayOfWeekData}
+              nameKey={isDynamic ? "day_name" : "day_of_week"}
               valueKey="avgSales"
               valueSuffix="units/day"
               defaultChartType="area"
             />
           </div>
 
-          {/* PRODUCT X FESTIVAL MATRIX */}
+          {/* DYNAMIC PRODUCT VOLUME DISTRIBUTION CHART */}
+          {productDistribution.length > 0 && (
+            <div className="grid grid-cols-1 gap-8">
+              <AnalyticsChartCard
+                title="Product Sales Volume Breakdown"
+                subtitle="Total historical sales volume distribution across detected dataset products"
+                badgeText="Product Distribution"
+                badgeColor="blue"
+                data={productDistribution}
+                nameKey="name"
+                valueKey="totalSales"
+                valueSuffix="units"
+                defaultChartType="bar"
+              />
+            </div>
+          )}
+
+          {/* PRODUCT SENSITIVITY TABLE */}
           <div className="bg-[#07101f] border border-slate-800 rounded-3xl p-7 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-semibold">Product-Level Occasion Sensitivity Matrix</h3>
+                <h3 className="text-xl font-semibold">Active Dataset Product Portfolio</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Mean sales per store per day across individual festivals & baseline days
+                  Real-time sales velocity and performance summary across your uploaded products
                 </p>
               </div>
-              <span className="text-xs text-slate-500">Values in Units/Day</span>
+              <button
+                onClick={() => navigate("/predictions")}
+                className="text-xs font-bold text-emerald-400 hover:text-emerald-300"
+              >
+                Run Forecasts →
+              </button>
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead className="bg-[#020617] text-slate-400 text-xs uppercase font-semibold">
                   <tr>
-                    <th className="p-3.5 rounded-l-xl">Product</th>
-                    <th className="p-3.5">Normal Day</th>
-                    <th className="p-3.5 text-emerald-400 font-bold">Harvest Fest</th>
-                    <th className="p-3.5 text-emerald-400 font-bold">Holi</th>
-                    <th className="p-3.5 text-emerald-400 font-bold">Diwali</th>
-                    <th className="p-3.5">New Year</th>
-                    <th className="p-3.5">Makar Sankranti</th>
-                    <th className="p-3.5">Christmas</th>
-                    <th className="p-3.5 text-rose-400 font-bold rounded-r-xl">Independence Day</th>
+                    <th className="p-3.5 rounded-l-xl">Product Name</th>
+                    <th className="p-3.5">Historical Sales</th>
+                    <th className="p-3.5">Avg Daily Sales</th>
+                    <th className="p-3.5">Recorded Observations</th>
+                    <th className="p-3.5 rounded-r-xl">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {productFestivalMatrix.map((row) => (
-                    <tr key={row.product} className="hover:bg-slate-800/40 transition">
-                      <td className="p-3.5 font-bold text-white">{row.product}</td>
-                      <td className="p-3.5 font-mono">{row["Normal Day"]}</td>
-                      <td className="p-3.5 font-mono text-emerald-400 font-semibold">{row["Harvest Festival"]}</td>
-                      <td className="p-3.5 font-mono text-emerald-400 font-semibold">{row["Holi"]}</td>
-                      <td className="p-3.5 font-mono text-emerald-400 font-semibold">{row["Diwali"]}</td>
-                      <td className="p-3.5 font-mono">{row["New Year"]}</td>
-                      <td className="p-3.5 font-mono">{row["Makar Sankranti"]}</td>
-                      <td className="p-3.5 font-mono">{row["Christmas"]}</td>
-                      <td className="p-3.5 font-mono text-rose-400">{row["Independence Day"]}</td>
-                    </tr>
-                  ))}
+                  {productDistribution.length > 0 ? (
+                    productDistribution.map((row) => (
+                      <tr key={row.name} className="hover:bg-slate-800/40 transition">
+                        <td className="p-3.5 font-bold text-white flex items-center gap-2">
+                          <span>📦</span>
+                          <span>{row.name}</span>
+                        </td>
+                        <td className="p-3.5 font-mono text-emerald-400 font-semibold">
+                          {row.totalSales.toLocaleString()} units
+                        </td>
+                        <td className="p-3.5 font-mono text-white">
+                          {row.avgSales} units/day
+                        </td>
+                        <td className="p-3.5 font-mono text-slate-400">
+                          {row.recordCount.toLocaleString()} records
+                        </td>
+                        <td className="p-3.5">
+                          <button
+                            onClick={() => navigate("/predictions")}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
+                          >
+                            Forecast →
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    defaultMatrix.map((row) => (
+                      <tr key={row.product} className="hover:bg-slate-800/40 transition">
+                        <td className="p-3.5 font-bold text-white flex items-center gap-2">
+                          <span>📦</span>
+                          <span>{row.product}</span>
+                        </td>
+                        <td className="p-3.5 font-mono">{row["Normal Day"]} units/day</td>
+                        <td className="p-3.5 font-mono text-emerald-400 font-semibold">
+                          {row["Harvest Festival"]} units/day
+                        </td>
+                        <td className="p-3.5 font-mono text-slate-400">Baseline Records</td>
+                        <td className="p-3.5">
+                          <button
+                            onClick={() => navigate("/predictions")}
+                            className="px-3 py-1 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition"
+                          >
+                            Forecast →
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

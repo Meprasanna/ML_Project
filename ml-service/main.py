@@ -10,6 +10,7 @@ import joblib
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
+from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
@@ -45,6 +46,7 @@ class PredictRequest(BaseModel):
     companyId: str
     product: str
     forecastDays: int = Field(default=7, ge=1, le=30)
+    modelType: str = "HistGradientBoosting"
 
 
 # =========================================================
@@ -504,23 +506,23 @@ def train_company_model(company_id, force_refresh=False):
 
     daily = aggregate_product_day(raw)
 
-    if daily["date"].nunique() < 90:
+    if daily["date"].nunique() < 30:
         raise RuntimeError(
-            "At least 90 days of historical data are required."
+            "At least 30 days of historical data are required to build temporal lags."
         )
 
     features_df = create_features(daily)
 
     features_df = features_df.dropna(
         subset=[
-            "lag28",
-            "rollingMean30",
+            "lag7",
+            "rollingMean7",
         ]
     ).reset_index(drop=True)
 
-    if len(features_df) < 500:
+    if len(features_df) < 15:
         raise RuntimeError(
-            "Not enough usable records after feature engineering."
+            "Not enough usable records after feature engineering (minimum 15 records required)."
         )
 
     unique_dates = sorted(
@@ -576,9 +578,14 @@ def train_company_model(company_id, force_refresh=False):
             n_jobs=-1,
             random_state=42,
         ),
+        "Ridge": Ridge(
+            alpha=1.0,
+            random_state=42,
+        ),
     }
 
     results = []
+    trained_pipelines = {}
     best_pipeline = None
     best_name = None
     best_metrics = None
@@ -610,6 +617,8 @@ def train_company_model(company_id, force_refresh=False):
             "model": name,
             **metrics,
         })
+
+        trained_pipelines[name] = pipeline
 
         if (
             best_metrics is None
@@ -658,7 +667,7 @@ def train_company_model(company_id, force_refresh=False):
         "trainedAt": pd.Timestamp.utcnow().isoformat(),
     }
 
-    TRAINED_MODELS[company_id] = best_pipeline
+    TRAINED_MODELS[company_id] = trained_pipelines
     MODEL_METADATA[company_id] = {
         **metadata,
         "dailyHistory": daily,
@@ -671,6 +680,7 @@ def train_company_model(company_id, force_refresh=False):
 
     joblib.dump(
         {
+            "models": trained_pipelines,
             "model": best_pipeline,
             "metadata": {
                 k: v
@@ -689,44 +699,66 @@ def train_company_model(company_id, force_refresh=False):
 # LOAD SAVED MODEL IF AVAILABLE
 # =========================================================
 
-def get_trained_model(company_id):
-    if company_id in TRAINED_MODELS:
-        return (
-            TRAINED_MODELS[company_id],
-            MODEL_METADATA[company_id],
+def get_trained_model(company_id, model_name=None):
+    if company_id not in TRAINED_MODELS:
+        artifact_path = os.path.join(
+            MODEL_DIR,
+            f"{company_id}.joblib",
         )
 
-    artifact_path = os.path.join(
-        MODEL_DIR,
-        f"{company_id}.joblib",
+        if not os.path.exists(artifact_path):
+            return None, None, None
+
+        artifact = joblib.load(artifact_path)
+
+        TRAINED_MODELS[company_id] = artifact.get("models") or {
+            artifact.get("metadata", {}).get("model", "HistGradientBoosting"): artifact["model"]
+        }
+
+        metadata = artifact["metadata"]
+
+        try:
+            raw = clean_dataset(
+                fetch_dataset_from_node(company_id)
+            )
+
+            metadata["dailyHistory"] = aggregate_product_day(
+                raw
+            )
+        except Exception:
+            metadata["dailyHistory"] = artifact.get("dailyHistory")
+
+        MODEL_METADATA[company_id] = metadata
+
+    models_dict = TRAINED_MODELS[company_id]
+    metadata = MODEL_METADATA[company_id]
+
+    if not isinstance(models_dict, dict):
+        models_dict = {metadata.get("model", "HistGradientBoosting"): models_dict}
+        TRAINED_MODELS[company_id] = models_dict
+
+    chosen_name = model_name or metadata.get("model")
+    pipeline = models_dict.get(chosen_name)
+    if pipeline is None:
+        chosen_name = metadata.get("model") or list(models_dict.keys())[0]
+        pipeline = models_dict.get(chosen_name)
+
+    candidates = metadata.get("candidates", [])
+    model_metrics = next(
+        (c for c in candidates if c.get("model") == chosen_name),
+        metadata.get("metrics", {}),
     )
 
-    if not os.path.exists(artifact_path):
-        return None, None
-
-    artifact = joblib.load(artifact_path)
-
-    TRAINED_MODELS[company_id] = artifact["model"]
-
-    metadata = artifact["metadata"]
-
-    # Re-fetch current company data for future forecasting.
-    try:
-        raw = clean_dataset(
-            fetch_dataset_from_node(company_id)
-        )
-
-        metadata["dailyHistory"] = aggregate_product_day(
-            raw
-        )
-    except Exception:
-        metadata["dailyHistory"] = None
-
-    MODEL_METADATA[company_id] = metadata
+    model_info = {
+        "name": chosen_name,
+        "metrics": model_metrics,
+        "availableModels": list(models_dict.keys()),
+    }
 
     return (
-        TRAINED_MODELS[company_id],
-        MODEL_METADATA[company_id],
+        pipeline,
+        metadata,
+        model_info,
     )
 
 
@@ -995,22 +1027,39 @@ def forecast_product(
             )
         )
 
+        stock_avail = round(float(row.get("stockAvailable", 0)), 1)
+        buffer_units = round(predicted * 0.15, 1)
+        target_inv = predicted + buffer_units
+        material_req = round(max(0.0, target_inv - stock_avail), 1)
+
+        if stock_avail < predicted:
+            reorder_status = "CRITICAL REORDER (Stockout Risk)"
+        elif stock_avail < target_inv:
+            reorder_status = "REORDER RECOMMENDED (Buffer Alert)"
+        else:
+            reorder_status = "OPTIMAL STOCK LEVEL"
+
+        fest_label = (
+            row["festival"]
+            if row["festival"] != "None" and row["festival"] != ""
+            else "Normal Day"
+        )
+
         predictions.append({
             "date": row["date"].strftime("%Y-%m-%d"),
-            "predictedDemand": round(
-                predicted,
-                2,
-            ),
+            "product": str(product),
+            "predictedDemand": round(predicted, 2),
+            "predictedSales": round(predicted, 1),
+            "availableStock": stock_avail,
+            "safetyBufferUnits": buffer_units,
+            "materialRequirement": material_req,
+            "reorderStatus": reorder_status,
             "holiday": (
                 row["holidayName"]
                 if row["holidayName"] != "None"
                 else None
             ),
-            "festival": (
-                row["festival"]
-                if row["festival"] != "None"
-                else None
-            ),
+            "festival": fest_label,
             "promotionRate": round(
                 float(row["promotionRate"]) * 100,
                 2,
@@ -1043,12 +1092,12 @@ def forecast_product(
 
         item["lowerBound"] = round(
             max(0, predicted - band),
-            2,
+            1,
         )
 
         item["upperBound"] = round(
             predicted + band,
-            2,
+            1,
         )
 
     return predictions
@@ -1215,9 +1264,9 @@ def model_status(companyId: str = None):
             detail="companyId is required.",
         )
 
-    _, metadata = get_trained_model(companyId)
+    _, metadata, model_info = get_trained_model(companyId)
 
-    if metadata is None:
+    if metadata is None or model_info is None:
         return {
             "success": True,
             "trained": False,
@@ -1227,22 +1276,23 @@ def model_status(companyId: str = None):
         "success": True,
         "trained": True,
         "model": {
-            "name": metadata["model"],
-            "metrics": metadata["metrics"],
-            "candidates": metadata["candidates"],
-            "trainingRecords": metadata["trainingRecords"],
-            "validationRecords": metadata["validationRecords"],
+            "name": model_info["name"],
+            "metrics": model_info["metrics"],
+            "availableModels": model_info["availableModels"],
+            "candidates": metadata.get("candidates", []),
+            "trainingRecords": metadata.get("trainingRecords", 0),
+            "validationRecords": metadata.get("validationRecords", 0),
             "trainingPeriod": {
-                "start": metadata["trainingStart"],
-                "end": metadata["trainingEnd"],
+                "start": metadata.get("trainingStart"),
+                "end": metadata.get("trainingEnd"),
             },
             "validationPeriod": {
-                "start": metadata["validationStart"],
-                "end": metadata["validationEnd"],
+                "start": metadata.get("validationStart"),
+                "end": metadata.get("validationEnd"),
             },
-            "featureCount": metadata["featureCount"],
-            "products": metadata["products"],
-            "trainedAt": metadata["trainedAt"],
+            "featureCount": metadata.get("featureCount", 0),
+            "products": metadata.get("products", []),
+            "trainedAt": metadata.get("trainedAt"),
         },
     }
 
@@ -1260,36 +1310,54 @@ def predict(request: PredictRequest):
                 detail="forecastDays must be between 1 and 30.",
             )
 
-        model, metadata = get_trained_model(
-            request.companyId
+        model, metadata, model_info = get_trained_model(
+            request.companyId,
+            model_name=request.modelType,
         )
 
-        if model is None or metadata is None:
+        if model is None or metadata is None or model_info is None:
             metadata = train_company_model(
                 request.companyId,
                 force_refresh=True,
             )
 
-            model = TRAINED_MODELS[
-                request.companyId
-            ]
+            model, metadata, model_info = get_trained_model(
+                request.companyId,
+                model_name=request.modelType,
+            )
 
-        predictions = forecast_product(
-            model=model,
-            metadata=MODEL_METADATA[
-                request.companyId
-            ],
-            product=request.product,
-            forecast_days=request.forecastDays,
-        )
+        if request.product.strip().upper() == "ALL":
+            all_predictions = []
+            for prod in metadata.get("products", []):
+                try:
+                    p_preds = forecast_product(
+                        model=model,
+                        metadata=MODEL_METADATA[request.companyId],
+                        product=prod,
+                        forecast_days=request.forecastDays,
+                    )
+                    all_predictions.extend(p_preds)
+                except Exception:
+                    continue
+            predictions = all_predictions
+        else:
+            predictions = forecast_product(
+                model=model,
+                metadata=MODEL_METADATA[
+                    request.companyId
+                ],
+                product=request.product,
+                forecast_days=request.forecastDays,
+            )
 
         return {
             "success": True,
             "product": request.product,
             "forecastDays": request.forecastDays,
             "model": {
-                "name": metadata["model"],
-                "metrics": metadata["metrics"],
+                "name": model_info["name"],
+                "metrics": model_info["metrics"],
+                "availableModels": model_info["availableModels"],
             },
             "forecast": predictions,
         }

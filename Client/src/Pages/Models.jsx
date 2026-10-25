@@ -1,10 +1,83 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import { FORECAST_DATA } from "../data/forecastData";
+import { API_BASE_URL } from "../config";
 
 const Models = () => {
   const navigate = useNavigate();
-  const { summary, modelComparison, featureImportance } = FORECAST_DATA;
+  const { summary: defaultSummary, modelComparison: defaultComparison, featureImportance } = FORECAST_DATA;
+
+  const [modelStatus, setModelStatus] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [training, setTraining] = useState(false);
+  const [trainMessage, setTrainMessage] = useState("");
+  const [trainError, setTrainError] = useState("");
+
+  const fetchModelStatus = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(`${API_BASE_URL}/models/status`, {
+        withCredentials: true,
+      });
+      if (res.data?.success && res.data?.trained) {
+        setModelStatus(res.data.model);
+      } else {
+        setModelStatus(null);
+      }
+    } catch (err) {
+      console.warn("Could not fetch dynamic model status:", err.message);
+      setModelStatus(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchModelStatus();
+  }, []);
+
+  const handleTrainModel = async () => {
+    try {
+      setTraining(true);
+      setTrainMessage("");
+      setTrainError("");
+
+      const res = await axios.post(
+        `${API_BASE_URL}/models/train`,
+        {},
+        { withCredentials: true }
+      );
+
+      if (res.data?.success) {
+        setTrainMessage(res.data.message || "Model trained successfully!");
+        if (res.data.model) {
+          setModelStatus(res.data.model);
+        } else {
+          await fetchModelStatus();
+        }
+      } else {
+        setTrainError(res.data?.message || "Training failed.");
+      }
+    } catch (err) {
+      console.error("Train error:", err);
+      setTrainError(
+        err.response?.data?.message ||
+          "Model training failed. Please ensure your Python ML service is running and connected."
+      );
+    } finally {
+      setTraining(false);
+    }
+  };
+
+  // Determine active metrics (dynamic if trained, otherwise baseline demo)
+  const isDynamic = Boolean(modelStatus);
+  const activeModelName = modelStatus?.name || defaultSummary.bestModel;
+  const activeMAPE = modelStatus?.metrics?.mape ?? defaultSummary.bestMAPE;
+  const activeRMSE = modelStatus?.metrics?.rmse ?? defaultSummary.bestRMSE;
+  const activeMAE = modelStatus?.metrics?.mae ?? defaultSummary.bestMAE;
+  const activeTrainRecords = modelStatus?.trainingRecords ?? defaultSummary.historicalRecords;
+  const activeProducts = modelStatus?.products || ["Tomato", "Potato", "Milk", "Rice", "Onion", "Bread"];
 
   return (
     <div className="min-h-screen bg-[#020617] text-white flex">
@@ -65,57 +138,171 @@ const Models = () => {
             <p className="text-slate-500 text-sm">Machine Learning Architecture</p>
             <h1 className="text-lg font-semibold text-white">Model Benchmark & Diagnostics</h1>
           </div>
-          <button
-            onClick={() => navigate("/")}
-            className="text-sm text-slate-400 hover:text-white transition"
-          >
-            ← Back to Home
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleTrainModel}
+              disabled={training}
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {training ? (
+                <>
+                  <span className="animate-spin inline-block">↻</span>
+                  <span>Training ML Model...</span>
+                </>
+              ) : (
+                <>
+                  <span>⚡</span>
+                  <span>{isDynamic ? "Retrain Model" : "Train ML Model Now"}</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm text-slate-400 hover:text-white transition hidden sm:inline-block ml-2"
+            >
+              ← Back to Home
+            </button>
+          </div>
         </header>
 
         {/* BODY */}
         <section className="p-6 lg:p-10 max-w-[1400px] mx-auto space-y-8">
-          <div>
-            <p className="text-emerald-400 font-medium text-sm mb-2">MODEL PERFORMANCE</p>
-            <h2 className="text-3xl lg:text-4xl font-bold">Trained Forecast Models</h2>
-            <p className="text-slate-400 mt-2 max-w-2xl">
-              Strict chronological 80/20 train/test evaluation (5,112 train records, 1,284 out-of-time test records).
-            </p>
+          {/* BANNER ALERTS */}
+          {trainMessage && (
+            <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-sm flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span>✓</span>
+                <span>{trainMessage}</span>
+              </span>
+              <button
+                onClick={() => setTrainMessage("")}
+                className="text-slate-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {trainError && (
+            <div className="p-4 rounded-2xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-sm flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <span>⚠</span>
+                <span>{trainError}</span>
+              </span>
+              <button
+                onClick={() => setTrainError("")}
+                className="text-slate-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-3">
+                <p className="text-emerald-400 font-medium text-sm">MODEL PERFORMANCE</p>
+                {isDynamic ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    Live Custom Model Trained ✓
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                    Demo Baseline (Ready to Train)
+                  </span>
+                )}
+              </div>
+              <h2 className="text-3xl lg:text-4xl font-bold mt-1">Trained Forecast Models</h2>
+              <p className="text-slate-400 mt-2 max-w-2xl text-sm">
+                {isDynamic && modelStatus.trainingPeriod ? (
+                  <>
+                    Trained on your custom dataset from{" "}
+                    <strong className="text-white">{modelStatus.trainingPeriod.start}</strong> to{" "}
+                    <strong className="text-white">{modelStatus.trainingPeriod.end}</strong> (
+                    {activeTrainRecords.toLocaleString()} training records).
+                  </>
+                ) : (
+                  "Strict chronological 80/20 train/test evaluation on clean multi-factor records."
+                )}
+              </p>
+            </div>
+
+            <button
+              onClick={handleTrainModel}
+              disabled={training}
+              className="sm:hidden w-full py-3 rounded-xl bg-emerald-500 text-slate-950 font-bold text-sm"
+            >
+              {training ? "Training..." : "⚡ Train ML Model Now"}
+            </button>
+          </div>
+
+          {/* DYNAMIC PRODUCTS BADGE LIST */}
+          <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-slate-400 uppercase font-semibold">
+                Active Trained Products ({activeProducts.length})
+              </p>
+              <button
+                onClick={() => navigate("/predictions")}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-bold"
+              >
+                Forecast These Products →
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {activeProducts.map((p) => (
+                <span
+                  key={p}
+                  className="px-3 py-1 rounded-xl text-xs font-semibold bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                >
+                  📦 {p}
+                </span>
+              ))}
+            </div>
           </div>
 
           {/* KPI CARDS */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">Selected Best Model</p>
-              <h3 className="text-xl font-bold text-white mt-2">{summary.bestModel}</h3>
-              <p className="text-xs text-emerald-400 mt-1 font-semibold">Production Ready ✓</p>
+              <h3 className="text-xl font-bold text-white mt-2">{activeModelName}</h3>
+              <p className="text-xs text-emerald-400 mt-1 font-semibold">
+                {isDynamic ? "Custom Trained ✓" : "Production Baseline ✓"}
+              </p>
             </div>
 
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">Mean Absolute % Error</p>
-              <h3 className="text-2xl font-bold text-emerald-400 mt-2">{summary.bestMAPE}%</h3>
-              <p className="text-xs text-slate-400 mt-1">Under 5% Error Rate</p>
+              <h3 className="text-2xl font-bold text-emerald-400 mt-2">{activeMAPE}%</h3>
+              <p className="text-xs text-slate-400 mt-1">High Forecast Accuracy</p>
             </div>
 
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
-              <p className="text-slate-400 text-xs uppercase font-medium">R² Variance Explained</p>
-              <h3 className="text-2xl font-bold text-teal-300 mt-2">{summary.bestR2}</h3>
-              <p className="text-xs text-slate-400 mt-1">95.28% Explained Variance</p>
+              <p className="text-slate-400 text-xs uppercase font-medium">Mean Absolute Error (MAE)</p>
+              <h3 className="text-2xl font-bold text-teal-300 mt-2">{activeMAE} units</h3>
+              <p className="text-xs text-slate-400 mt-1">Per-day deviation</p>
             </div>
 
             <div className="bg-[#07101f] border border-slate-800 rounded-2xl p-6">
               <p className="text-slate-400 text-xs uppercase font-medium">Root Mean Squared Error</p>
-              <h3 className="text-2xl font-bold text-blue-400 mt-2">{summary.bestRMSE} units</h3>
-              <p className="text-xs text-slate-400 mt-1">MAE: {summary.bestMAE} units</p>
+              <h3 className="text-2xl font-bold text-blue-400 mt-2">{activeRMSE} units</h3>
+              <p className="text-xs text-slate-400 mt-1">RMSE variance index</p>
             </div>
           </div>
 
           {/* BENCHMARK TABLE */}
           <div className="bg-[#07101f] border border-slate-800 rounded-3xl p-7">
-            <h3 className="text-xl font-semibold mb-1">Model Architecture Comparison</h3>
-            <p className="text-sm text-slate-500 mb-6">
-              Evaluated on the unseen test period (2025-06-01 to 2025-12-31)
-            </p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-xl font-semibold mb-1">Model Architecture Comparison</h3>
+                <p className="text-sm text-slate-500">
+                  {isDynamic
+                    ? "Candidate models evaluated on your out-of-sample validation period"
+                    : "Evaluated on the unseen test period (2025-06-01 to 2025-12-31)"}
+                </p>
+              </div>
+            </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
@@ -125,36 +312,63 @@ const Models = () => {
                     <th className="p-3.5">MAE (Units)</th>
                     <th className="p-3.5">RMSE (Units)</th>
                     <th className="p-3.5">MAPE (%)</th>
-                    <th className="p-3.5">R² Score</th>
-                    <th className="p-3.5">Training Time</th>
                     <th className="p-3.5 rounded-r-xl">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800">
-                  {Object.entries(modelComparison).map(([name, m]) => {
-                    const isBest = name === summary.bestModel;
-                    return (
-                      <tr key={name} className={isBest ? "bg-emerald-500/10" : "hover:bg-slate-800/40"}>
-                        <td className={`p-3.5 font-bold ${isBest ? "text-emerald-400" : "text-white"}`}>
-                          {name}
-                        </td>
-                        <td className="p-3.5 font-mono">{m.MAE.toFixed(2)}</td>
-                        <td className="p-3.5 font-mono">{m.RMSE.toFixed(2)}</td>
-                        <td className="p-3.5 font-mono font-bold text-emerald-400">{m.MAPE.toFixed(2)}%</td>
-                        <td className="p-3.5 font-mono">{m.R2.toFixed(4)}</td>
-                        <td className="p-3.5 font-mono text-slate-400">{m.TrainingTimeSec}s</td>
-                        <td className="p-3.5">
-                          {isBest ? (
-                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                              ✓ SELECTED BEST
-                            </span>
-                          ) : (
-                            <span className="text-xs text-slate-500">Evaluated Candidate</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {modelStatus?.candidates ? (
+                    modelStatus.candidates.map((c) => {
+                      const isBest = c.model === activeModelName;
+                      return (
+                        <tr
+                          key={c.model}
+                          className={isBest ? "bg-emerald-500/10" : "hover:bg-slate-800/40"}
+                        >
+                          <td className={`p-3.5 font-bold ${isBest ? "text-emerald-400" : "text-white"}`}>
+                            {c.model}
+                          </td>
+                          <td className="p-3.5 font-mono">{c.mae}</td>
+                          <td className="p-3.5 font-mono">{c.rmse}</td>
+                          <td className="p-3.5 font-mono font-bold text-emerald-400">{c.mape}%</td>
+                          <td className="p-3.5">
+                            {isBest ? (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                ✓ SELECTED BEST
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-500">Evaluated Candidate</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    Object.entries(defaultComparison).map(([name, m]) => {
+                      const isBest = name === defaultSummary.bestModel;
+                      return (
+                        <tr
+                          key={name}
+                          className={isBest ? "bg-emerald-500/10" : "hover:bg-slate-800/40"}
+                        >
+                          <td className={`p-3.5 font-bold ${isBest ? "text-emerald-400" : "text-white"}`}>
+                            {name}
+                          </td>
+                          <td className="p-3.5 font-mono">{m.MAE.toFixed(2)}</td>
+                          <td className="p-3.5 font-mono">{m.RMSE.toFixed(2)}</td>
+                          <td className="p-3.5 font-mono font-bold text-emerald-400">{m.MAPE.toFixed(2)}%</td>
+                          <td className="p-3.5">
+                            {isBest ? (
+                              <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                ✓ SELECTED BEST
+                              </span>
+                            ) : (
+                              <span className="text-xs text-slate-500">Evaluated Candidate</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
@@ -164,7 +378,7 @@ const Models = () => {
           <div className="bg-[#07101f] border border-slate-800 rounded-3xl p-7">
             <h3 className="text-xl font-semibold mb-1">Top Demand Drivers (Feature Importance)</h3>
             <p className="text-sm text-slate-500 mb-6">
-              Permutation importance score on out-of-time test set
+              Permutation importance score evaluating commercial, seasonal, and temporal lag factors
             </p>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
