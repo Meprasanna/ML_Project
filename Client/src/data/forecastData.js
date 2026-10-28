@@ -9,6 +9,8 @@ export const FORECAST_DATA = {
     "bestMAE": 25.22,
     "bestMAPE": 4.32,
     "bestR2": 0.9528,
+    "bestAccuracy": 95.68,
+    "bestPerformanceScore": 95.28,
     "weekdayAvg": 146.76,
     "weekendAvg": 152.61,
     "weekendUpliftPct": 3.98
@@ -19,6 +21,8 @@ export const FORECAST_DATA = {
       "RMSE": 37.46,
       "R2": 0.9401,
       "MAPE": 4.84,
+      "Accuracy": 95.16,
+      "PerformanceScore": 94.01,
       "TrainingTimeSec": 0.09
     },
     "Random Forest Regressor": {
@@ -26,6 +30,8 @@ export const FORECAST_DATA = {
       "RMSE": 38.65,
       "R2": 0.9362,
       "MAPE": 4.86,
+      "Accuracy": 95.14,
+      "PerformanceScore": 93.62,
       "TrainingTimeSec": 0.99
     },
     "HistGradientBoosting Regressor": {
@@ -33,6 +39,8 @@ export const FORECAST_DATA = {
       "RMSE": 33.23,
       "R2": 0.9528,
       "MAPE": 4.32,
+      "Accuracy": 95.68,
+      "PerformanceScore": 95.28,
       "TrainingTimeSec": 1.19
     }
   },

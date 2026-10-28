@@ -10,18 +10,45 @@ const MODEL_OPTIONS = [
     label: "HistGradientBoosting",
     subtitle: "Non-Linear Decision Trees (Highest Accuracy)",
     icon: "⚡",
+    accuracy: 95.7,
+    accuracyExact: "95.68%",
+    performance: 95.3,
+    performanceExact: "95.28%",
+    r2: 0.9528,
+    rmse: 33.23,
+    mae: 25.22,
+    mape: 4.32,
+    speed: "1.19s",
   },
   {
     id: "RandomForest",
     label: "Random Forest",
     subtitle: "Ensemble Bagging Estimator",
     icon: "🌲",
+    accuracy: 95.1,
+    accuracyExact: "95.14%",
+    performance: 93.6,
+    performanceExact: "93.62%",
+    r2: 0.9362,
+    rmse: 38.65,
+    mae: 28.60,
+    mape: 4.86,
+    speed: "0.99s",
   },
   {
     id: "Ridge",
     label: "Ridge Regression",
     subtitle: "Regularized Linear Baseline",
     icon: "📈",
+    accuracy: 95.2,
+    accuracyExact: "95.16%",
+    performance: 94.0,
+    performanceExact: "94.01%",
+    r2: 0.9401,
+    rmse: 37.46,
+    mae: 28.19,
+    mape: 4.84,
+    speed: "0.09s",
   },
 ];
 
@@ -335,31 +362,75 @@ const Predictions = () => {
                         (results update based on selected model)
                       </span>
                     </label>
-                    {modelMetrics && (
-                      <span className="text-xs text-slate-400">
-                        Accuracy: <strong className="text-emerald-400">{modelMetrics.metrics?.mape || 4.3}% MAPE</strong>
+                    <div className="flex items-center gap-2.5 text-xs text-slate-400">
+                      <span>
+                        Active Accuracy: <strong className="text-emerald-400 font-mono">{(100 - Number(modelMetrics?.metrics?.mape || 4.32)).toFixed(1)}%</strong>
                       </span>
-                    )}
+                      <span>•</span>
+                      <span>
+                        Performance: <strong className="text-blue-400 font-mono">{modelMetrics?.metrics?.r2 ? (Number(modelMetrics.metrics.r2) * 100).toFixed(1) : "95.3"}% R²</strong>
+                      </span>
+                    </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     {MODEL_OPTIONS.map((m) => {
                       const isSelected = selectedModel === m.id;
+                      const liveMape = isSelected && modelMetrics?.metrics?.mape != null ? modelMetrics.metrics.mape : m.mape;
+                      const liveAcc = (100 - Number(liveMape)).toFixed(1);
+                      const livePerf = isSelected && modelMetrics?.metrics?.performanceScore != null
+                        ? Number(modelMetrics.metrics.performanceScore).toFixed(1)
+                        : isSelected && modelMetrics?.metrics?.r2 != null
+                        ? (Number(modelMetrics.metrics.r2) * 100).toFixed(1)
+                        : m.performance.toFixed(1);
+
                       return (
                         <button
                           key={m.id}
                           onClick={() => setSelectedModel(m.id)}
-                          className={`p-4 rounded-2xl border text-left transition flex items-start gap-3.5 ${
+                          className={`p-4 rounded-2xl border text-left transition flex flex-col justify-between gap-3 ${
                             isSelected
-                              ? "bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/5"
+                              ? "bg-emerald-500/15 border-emerald-500/50 shadow-lg shadow-emerald-500/5 ring-1 ring-emerald-500/30"
                               : "bg-[#020617] border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white"
                           }`}
                         >
-                          <span className="text-2xl">{m.icon}</span>
                           <div>
-                            <p className={`font-bold text-sm ${isSelected ? "text-emerald-400" : "text-white"}`}>
-                              {m.label}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-0.5">{m.subtitle}</p>
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xl">{m.icon}</span>
+                                <p className={`font-bold text-sm ${isSelected ? "text-emerald-400" : "text-white"}`}>
+                                  {m.label}
+                                </p>
+                              </div>
+                              {isSelected && (
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                              )}
+                            </div>
+
+                            {/* Performance and Accuracy Score in front of each model */}
+                            <div className="flex items-center gap-2 mt-2.5 flex-wrap">
+                              <span
+                                title="Accuracy Score: 100% - MAPE"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              >
+                                <span>🎯</span>
+                                <span>Acc: {liveAcc}%</span>
+                              </span>
+                              <span
+                                title="Performance Score: R² Goodness-of-Fit"
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/40"
+                              >
+                                <span>⚡</span>
+                                <span>Perf: {livePerf}%</span>
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-400 mt-2 line-clamp-1">{m.subtitle}</p>
+                          </div>
+
+                          <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                            <span>MAPE: <strong className="text-emerald-400 font-mono">{liveMape}%</strong></span>
+                            <span>RMSE: <strong className="text-slate-300 font-mono">{m.rmse}</strong></span>
+                            <span>R²: <strong className="text-slate-300 font-mono">{m.r2}</strong></span>
                           </div>
                         </button>
                       );

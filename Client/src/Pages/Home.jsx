@@ -166,7 +166,15 @@ const Home = () => {
           <div className="rounded-2xl bg-[#0b1729] border border-slate-800 p-4">
             <p className="text-xs text-slate-400 uppercase font-semibold">Active Pipeline</p>
             <p className="text-emerald-400 font-bold mt-1 text-sm">{activeModelName}</p>
-            <p className="text-xs text-slate-500 mt-1">MAPE: {activeMAPE}%</p>
+            <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+              <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                🎯 Acc: {(100 - activeMAPE).toFixed(1)}%
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded font-bold bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                ⚡ Perf: {(activeR2 * 100).toFixed(1)}%
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-1.5 font-mono">MAPE: {activeMAPE}% • R²: {activeR2}</p>
           </div>
 
           <button
@@ -230,7 +238,10 @@ const Home = () => {
                     : "Multi-Year Historical Horizon"}
                 </span>
                 <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-emerald-400">
-                  ✓ Model Accuracy: {activeMAPE}% MAPE
+                  🎯 Accuracy: {(100 - activeMAPE).toFixed(1)}% ({activeMAPE}% MAPE)
+                </span>
+                <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-blue-400">
+                  ⚡ Performance: {(activeR2 * 100).toFixed(1)}% (R² {activeR2})
                 </span>
                 <span className="px-3.5 py-1.5 rounded-xl bg-slate-900/80 border border-slate-700 text-xs text-amber-400">
                   🎉 Peak Surge: +{peakSurgeVal}% Lift
