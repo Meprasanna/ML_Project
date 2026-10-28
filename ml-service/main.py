@@ -12,7 +12,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor, HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI(title="DemandForecast AI")
@@ -494,10 +494,22 @@ def calculate_metrics(actual, predicted):
         np.abs(actual - predicted) / denominator
     ) * 100
 
+    try:
+        r2 = float(r2_score(actual, predicted))
+    except Exception:
+        r2 = 0.0
+
+    mape_val = float(mape)
+    accuracy_val = max(0.0, min(100.0, 100.0 - mape_val))
+    perf_val = max(0.0, min(100.0, r2 * 100.0))
+
     return {
         "mae": round(float(mae), 4),
         "rmse": round(float(rmse), 4),
-        "mape": round(float(mape), 4),
+        "mape": round(mape_val, 4),
+        "r2": round(r2, 4),
+        "accuracy": round(accuracy_val, 2),
+        "performanceScore": round(perf_val, 2),
     }
 
 
